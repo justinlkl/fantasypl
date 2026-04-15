@@ -1,0 +1,39 @@
+# FPL Prediction App — Python dependencies
+# Install: pip install -r requirements.txt
+
+# ── Data & ML ──────────────────────────────────────────────────────────────────
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.4
+scipy>=1.11
+joblib>=1.3
+
+# ── API backend ────────────────────────────────────────────────────────────────
+fastapi>=0.110
+uvicorn[standard]>=0.29       # ASGI server (run: uvicorn api.main:app --reload)
+sqlalchemy>=2.0               # ORM
+pydantic>=2.0                 # request/response models (bundled with FastAPI)
+
+# ── Database drivers (choose one) ─────────────────────────────────────────────
+# Development (SQLite — no install needed, built into Python):
+#   DATABASE_URL=sqlite:///./fpl_app.db  [default]
+
+# Production (PostgreSQL):
+psycopg2-binary>=2.9          # sync driver for SQLAlchemy
+# asyncpg>=0.29               # async driver (if you switch to async SQLAlchemy)
+
+# ── Cache / async jobs ─────────────────────────────────────────────────────────
+redis>=5.0                    # Redis client (optional — live service falls back without it)
+# celery[redis]>=5.3          # task queue (optional — for production job scheduling)
+# apscheduler>=3.10           # alternative lightweight scheduler
+
+# ── Scheduling (local / VPS) ──────────────────────────────────────────────────
+schedule>=1.2                 # used by etl/scheduler.py for cron-style runs
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+requests>=2.31                # cleaner HTTP client (optional — stdlib urllib used in core)
+python-dotenv>=1.0            # load .env file for local dev
+
+# ── Development / testing ─────────────────────────────────────────────────────
+pytest>=8.0
+httpx>=0.27                   # async test client for FastAPI

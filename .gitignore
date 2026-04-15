@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local runtime state
+fpl_app.db
+.pipeline_state.json
+logs/
+
+# Environment files
+.env
+.env.*
+
+# Frontend build/deps
+frontend/node_modules/
+frontend/.next/
+
+# Model outputs / generated artifacts
+artifacts/
