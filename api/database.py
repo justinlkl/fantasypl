@@ -16,6 +16,9 @@ DATABASE_URL = (
     or "sqlite:///./fpl_app.db"   # dev default — swap for PostgreSQL in prod
 )
 
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
 # ── Engine ─────────────────────────────────────────────────────────────────────
 # connect_args is needed for SQLite only (not for PostgreSQL).
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
