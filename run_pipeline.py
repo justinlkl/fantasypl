@@ -32,6 +32,13 @@ warnings.filterwarnings("ignore")
 PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# Respect env vars set by GitHub Actions / Render. If unset, default data to
+# ./etl and artifacts to ./artifacts.
+DATA_DIR = Path(os.environ.get("FPL_DATA_DIR", PROJECT_ROOT / "etl"))
+OUT = Path(os.environ.get("FPL_ARTIFACTS_DIR", PROJECT_ROOT / "artifacts"))
+os.environ.setdefault("FPL_DATA_DIR", str(DATA_DIR))
+os.environ.setdefault("FPL_ARTIFACTS_DIR", str(OUT))
+
 # ── Module imports ─────────────────────────────────────────────────────────────
 from etl.data_loader         import build_dataset, update_2526_from_github
 from etl.fdr                 import build_fdr_table, build_fixture_schedule
@@ -39,7 +46,6 @@ from models.feature_engineering import engineer_features, get_feature_columns
 from models.train            import train_models, feature_importance
 from models.predict          import top_picks, format_table
 
-OUT = Path(os.environ.get("FPL_ARTIFACTS_DIR", PROJECT_ROOT / "artifacts"))
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -61,7 +67,7 @@ def run_pipeline(tune_gbm: bool = True, save_csv: bool = True):
 
     # ── 2. Load data ──────────────────────────────────────────────────────
     print("\n[2/5]  Loading & cleaning data...")
-    df = build_dataset()
+    df = build_dataset(data_dir=DATA_DIR)
 
     s26 = df[df["season"] == "2526"]
     s25 = df[df["season"] == "2425"]

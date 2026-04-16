@@ -16,31 +16,42 @@ jobs:
     timeout-minutes: 90
     env:
       PYTHONUNBUFFERED: "1"
-      FPL_DATA_DIR: ${{ github.workspace }}
-      FPL_ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
-      # Set in repository secrets for production DB writes.
-      # If empty/missing, app falls back to local sqlite in the runner.
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Pull latest data, retrain models, and sync DB
+      - name: Download latest FPL data
+        env:
+          FPL_DATA_DIR: ${{ github.workspace }}/etl
         run: |
           python -m etl.sync_data
-          python -m etl.scheduler --once --force --no-tune
+
+      - name: Run pipeline (features + train + predict)
+        env:
+          FPL_DATA_DIR: ${{ github.workspace }}/etl
+          FPL_ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python run_pipeline.py --no-tune
+
+      - name: Sync latest season and predictions to DB
+        env:
+          FPL_DATA_DIR: ${{ github.workspace }}/etl
+          FPL_ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -m etl.db_sync --season 2526 --sync-predictions
 
       - name: Validate predictions were synced
         run: |
@@ -64,10 +75,10 @@ jobs:
           print(f"Latest model_run_at: {latest.isoformat()}")
           PY
 
-      - name: Upload artifacts
+      - name: Upload prediction artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: retrain-artifacts-${{ github.run_id }}
+          name: predictions
           if-no-files-found: warn
           path: |
             artifacts/predictions_all.csv

@@ -19,24 +19,25 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 # ── Path resolution ────────────────────────────────────────────────────────────
 
-def _data_dir() -> Path:
+def _data_dir(data_dir: Path | None = None) -> Path:
     """
     Return the data directory.  Priority:
-      1. FPL_DATA_DIR environment variable
-      2. project root (if CSVs are stored there)
-      3. ./data  (relative to project root)
+      1. explicit data_dir argument
+      2. FPL_DATA_DIR environment variable
+            3. etl/ directory (default local layout)
     """
+    if data_dir is not None:
+        return Path(data_dir)
+
     env = os.environ.get("FPL_DATA_DIR")
     if env:
         return Path(env)
 
-    root = Path(__file__).parent.parent
-    if (root / "players2526.csv").exists() and (root / "playerstats2526.csv").exists():
-        return root
-
-    return root / "data"
+    return Path(__file__).resolve().parent
 
 
 def _build_paths(data_dir: Path) -> dict:
@@ -49,6 +50,23 @@ def _build_paths(data_dir: Path) -> dict:
         "teams_2425":       data_dir / "teams2425.csv",
         "teams_2526":       data_dir / "teams2526.csv",
     }
+
+
+def _resolve_paths(paths: dict) -> dict:
+    """
+    Resolve each path against project root when file is not present in data_dir.
+    This keeps compatibility with repositories that keep CSVs at root.
+    """
+    resolved = {}
+    for key, path in paths.items():
+        p = Path(path)
+        if p.exists():
+            resolved[key] = p
+            continue
+
+        fallback = PROJECT_ROOT / p.name
+        resolved[key] = fallback if fallback.exists() else p
+    return resolved
 
 
 # ── Column definitions (unchanged from v3) ────────────────────────────────────
@@ -255,13 +273,13 @@ def _load_opta(paths: dict) -> pd.DataFrame:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def build_dataset() -> pd.DataFrame:
+def build_dataset(data_dir: Path | str | None = None) -> pd.DataFrame:
     """
     Load, clean, and merge all FPL source data into one per-GW DataFrame.
-    Reads CSVs from FPL_DATA_DIR (default: ./data/).
+    Reads CSVs from explicit data_dir or FPL_DATA_DIR (with project-root fallback).
     """
-    data_dir = _data_dir()
-    paths    = _build_paths(data_dir)
+    data_dir = _data_dir(Path(data_dir) if data_dir is not None else None)
+    paths    = _resolve_paths(_build_paths(data_dir))
 
     # Validate required files exist
     missing = [str(p) for p in paths.values() if not Path(p).exists()]

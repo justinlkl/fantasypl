@@ -16,7 +16,8 @@ import sys
 import urllib.request
 from pathlib import Path
 
-DATA_DIR = Path(os.environ.get("FPL_DATA_DIR", Path(__file__).resolve().parent.parent))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = Path(os.environ.get("FPL_DATA_DIR", Path(__file__).resolve().parent))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Confirmed paths from olbauday/FPL-Core-Insights repo
@@ -71,8 +72,11 @@ def check_local() -> list[str]:
     missing = []
     for fname in LOCAL_REQUIRED:
         path = DATA_DIR / fname
+        fallback = PROJECT_ROOT / fname
         if path.exists():
-            print(f"  {fname}: present ({path.stat().st_size:,} bytes)")
+            print(f"  {fname}: present in data dir ({path.stat().st_size:,} bytes)")
+        elif fallback.exists():
+            print(f"  {fname}: present in repo root ({fallback.stat().st_size:,} bytes)")
         else:
             status = "optional — pipeline will skip" if "matchstats" in fname else "MISSING — pipeline will fail"
             print(f"  {fname}: {status}")
