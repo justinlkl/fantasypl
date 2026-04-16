@@ -39,6 +39,7 @@ jobs:
 
       - name: Pull latest data, retrain models, and sync DB
         run: |
+          python -m etl.sync_data
           python -m etl.scheduler --once --force --no-tune
 
       - name: Validate predictions were synced
